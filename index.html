@@ -65,52 +65,44 @@
             const [pickupDate, setPickupDate] = useState('');
 
             // --- CONFIGURATION ---
-            // 1. ORDER FORM URL (Already set)
             const ORDER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdi6yz0COgqnoeqIW12rDYj2XFVwmlQJK4SlGL2BL2F2yQflw/formResponse';
-            
-            // 2. PASTE YOUR NEW "WEB APP URL" HERE (From Google Apps Script deployment)
             const MENU_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZC9Hg8JCm4Oo1mLyhV0CxQAyHUWoX-r8wT7x4QHba01Yn5rV7pjBd53jb5lj_KH3u/exec';
+
+            // --- DATE HELPERS ---
+            const getLocalISOTime = () => {
+                const now = new Date();
+                const tzOffset = now.getTimezoneOffset() * 60000; 
+                return new Date(Date.now() - tzOffset).toISOString().slice(0, 16);
+            };
+
+            const formatToFriendlyDate = (dateStr) => {
+                if (!dateStr) return "";
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                return new Date(dateStr).toLocaleDateString('en-US', options);
+            };
 
             useEffect(() => {
                 fetchMenuData();
+                // Set default pickup date to today
+                setPickupDate(getLocalISOTime());
             }, []);
 
             const fetchMenuData = async () => {
-                if (MENU_SCRIPT_URL.includes('PASTE_YOUR')) {
-                    setMenuItems([
-                        { id: 1, name: 'Setup Required', price: 0, description: 'Please paste your Apps Script URL in the code.', image: '', isPreOrder: false }
-                    ]);
-                    setLoading(false);
-                    return;
-                }
-
                 try {
-                    // Fetch directly from your Google Script API
                     const response = await fetch(MENU_SCRIPT_URL);
-                    
                     if (!response.ok) throw new Error("API_ERROR");
-                    
                     const data = await response.json();
-
-                    if (!Array.isArray(data)) throw new Error("INVALID_DATA");
-
-                    const items = data.map((row, index) => {
-                        return {
-                            id: index + 1,
-                            // Ensure these match your Sheet Header names exactly (Case Sensitive!)
-                            name: row.Name, 
-                            price: parseFloat(row.Price) || 0,
-                            description: row.Description,
-                            image: row.Image,
-                            isPreOrder: Boolean(row.IsPreOrder === true || row.IsPreOrder === "TRUE" || row.IsPreOrder === "true")
-                        };
-                    }).filter(item => item.name); 
-
+                    const items = data.map((row, index) => ({
+                        id: index + 1,
+                        name: row.Name, 
+                        price: parseFloat(row.Price) || 0,
+                        description: row.Description,
+                        image: row.Image,
+                        isPreOrder: Boolean(row.IsPreOrder === true || row.IsPreOrder === "TRUE" || row.IsPreOrder === "true")
+                    })).filter(item => item.name); 
                     setMenuItems(items);
                     setLoading(false);
-
                 } catch (error) {
-                    console.error('Menu Error:', error);
                     setLoading(false);
                     setErrorMsg("Could not load menu. Make sure you deployed the script as 'Anyone' can access.");
                 }
@@ -119,9 +111,7 @@
             const addToCart = (item) => {
                 const existing = cart.find(i => i.id === item.id);
                 if (existing) {
-                    setCart(cart.map(i => 
-                        i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-                    ));
+                    setCart(cart.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
                 } else {
                     setCart([...cart, { ...item, quantity: 1 }]);
                 }
@@ -142,52 +132,36 @@
             };
 
             const handleCheckout = async () => {
-                if (!customerName.trim()) {
-                    alert('Please enter your name');
-                    return;
-                }
-                if (!pickupDate) {
-                    alert('Please select a pickup date and time');
-                    return;
-                }
+                if (!customerName.trim()) { alert('Please enter your name'); return; }
+                if (!pickupDate) { alert('Please select a pickup date and time'); return; }
 
                 setSubmitting(true);
-
-                const orderDate = new Date().toLocaleString();
+                const orderDate = new Date().toLocaleString('en-US');
                 
-                const itemsList = cart.map(item => 
-                    `${item.name}${item.isPreOrder ? ' (PRE-ORDER)' : ''}`
-                ).join('\n');
+                // Format the pickup date specifically for the sheet
+                const formattedPickupForSheet = new Date(pickupDate).toLocaleString('en-US', {
+                    month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
 
-                const quantityList = cart.map(item => 
-                    item.quantity
-                ).join('\n');
-
+                const itemsList = cart.map(item => `${item.name}${item.isPreOrder ? ' (PRE-ORDER)' : ''}`).join('\n');
+                const quantityList = cart.map(item => item.quantity).join('\n');
                 const total = getTotal();
 
                 try {
                     const formData = new FormData();
                     formData.append('entry.1988934435', customerName);
                     formData.append('entry.1896473386', orderDate);
-                    formData.append('entry.260512440', pickupDate);
+                    formData.append('entry.260512440', formattedPickupForSheet);
                     formData.append('entry.594185743', itemsList);
                     formData.append('entry.1477240420', quantityList);
                     formData.append('entry.644258044', total);
 
-                    await fetch(ORDER_FORM_URL, {
-                        method: 'POST',
-                        body: formData,
-                        mode: 'no-cors'
-                    });
+                    await fetch(ORDER_FORM_URL, { method: 'POST', body: formData, mode: 'no-cors' });
 
-                    alert(`Order submitted successfully!\n\nName: ${customerName}\nPickup: ${new Date(pickupDate).toLocaleString()}\nTotal: $${total}\n\nThank you for your order! God bless you.`);
-                    setCart([]);
-                    setCustomerName('');
-                    setPickupDate('');
-                    setShowCheckout(false);
+                    alert(`Order submitted successfully!\n\nPickup: ${formattedPickupForSheet}\nTotal: $${total}`);
+                    setCart([]); setCustomerName(''); setPickupDate(getLocalISOTime()); setShowCheckout(false);
                 } catch (error) {
-                    console.error('Error submitting order:', error);
-                    alert('There was an error submitting your order. Please try again or contact us directly.');
+                    alert('Error submitting order. Please try again.');
                 } finally {
                     setSubmitting(false);
                 }
@@ -195,7 +169,6 @@
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-red-50">
-                    {/* Header */}
                     <header className="bg-gradient-to-r from-red-900 to-red-800 text-white shadow-lg sticky top-0 z-40">
                         <div className="max-w-7xl mx-auto px-4 py-6">
                             <div className="flex items-center justify-between">
@@ -206,104 +179,41 @@
                                         <p className="text-amber-200 text-sm mt-1">Aghapy Menu - Blessed Food Service</p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => setShowCart(!showCart)}
-                                    className="relative bg-amber-600 hover:bg-amber-700 px-6 py-3 rounded-full transition-all transform hover:scale-105 shadow-lg"
-                                >
-                                    <div className="flex items-center">
-                                        <ShoppingCart className="inline w-6 h-6 mr-2" />
-                                        <span className="font-semibold">Cart ({cart.length})</span>
-                                    </div>
-                                    {cart.length > 0 && (
-                                        <span className="absolute -top-2 -right-2 bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold animate-pulse">
-                                            {cart.reduce((sum, item) => sum + item.quantity, 0)}
-                                        </span>
-                                    )}
+                                <button onClick={() => setShowCart(!showCart)} className="relative bg-amber-600 hover:bg-amber-700 px-6 py-3 rounded-full transition-all transform hover:scale-105 shadow-lg">
+                                    <div className="flex items-center"><ShoppingCart className="inline w-6 h-6 mr-2" /><span className="font-semibold">Cart ({cart.length})</span></div>
+                                    {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold animate-pulse">{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>}
                                 </button>
                             </div>
                         </div>
                     </header>
 
-                    {/* Hero Section */}
                     <div className="bg-gradient-to-r from-red-800 to-amber-700 text-white py-12 text-center shadow-xl">
                         <h2 className="text-4xl font-bold mb-3">Welcome to Our Aghapy Service</h2>
-                        <p className="text-xl text-amber-100 max-w-2xl mx-auto px-4">
-                            Blessed food prepared with love and prayer for our community
-                        </p>
+                        <p className="text-xl text-amber-100 max-w-2xl mx-auto px-4">Blessed food prepared with love and prayer for our community</p>
                     </div>
 
                     <div className="max-w-7xl mx-auto px-4 py-8">
                         {errorMsg ? (
-                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-md mb-8 max-w-3xl mx-auto">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="w-6 h-6 flex-shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="font-bold">Error Loading Menu</p>
-                                        <p>{errorMsg}</p>
-                                    </div>
-                                </div>
+                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-md mb-8 max-w-3xl mx-auto flex items-start gap-3">
+                                <AlertCircle className="w-6 h-6 flex-shrink-0 mt-0.5" /><div><p className="font-bold">Error Loading Menu</p><p>{errorMsg}</p></div>
                             </div>
                         ) : loading ? (
-                            <div className="text-center py-20">
-                                <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-red-800 border-t-transparent"></div>
-                                <p className="mt-4 text-red-900 text-lg">Loading menu...</p>
-                            </div>
-                        ) : menuItems.length === 0 ? (
-                            <div className="text-center py-20 text-gray-500">
-                                <p className="text-xl">No menu items found.</p>
-                                <p className="text-sm mt-2">Please check your Google Sheet and columns.</p>
-                            </div>
+                            <div className="text-center py-20"><div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-red-800 border-t-transparent"></div><p className="mt-4 text-red-900 text-lg">Loading menu...</p></div>
                         ) : (
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
                                 {menuItems.map((item, i) => (
-                                    <div
-                                        key={item.id}
-                                        className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:scale-105 hover:shadow-2xl animate-slide-up relative"
-                                        style={{ animationDelay: `${i * 50}ms` }}
-                                    >
-                                        {/* PRE-ORDER BADGE */}
-                                        {item.isPreOrder && (
-                                            <div className="absolute top-0 left-0 bg-blue-700 text-white px-4 py-1 rounded-br-lg font-bold text-sm z-10 shadow-md flex items-center gap-1">
-                                                <CalendarClock className="w-4 h-4" />
-                                                PRE-ORDER ONLY
-                                            </div>
-                                        )}
-
+                                    <div key={item.id} className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:scale-105 hover:shadow-2xl animate-slide-up relative" style={{ animationDelay: `${i * 50}ms` }}>
+                                        {item.isPreOrder && <div className="absolute top-0 left-0 bg-blue-700 text-white px-4 py-1 rounded-br-lg font-bold text-sm z-10 shadow-md flex items-center gap-1"><CalendarClock className="w-4 h-4" />PRE-ORDER ONLY</div>}
                                         <div className="relative h-48 overflow-hidden">
-                                            <img 
-                                                src={item.image || 'https://via.placeholder.com/400x300?text=No+Image'} 
-                                                alt={item.name}
-                                                className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-                                                onError={(e) => {e.target.src='https://via.placeholder.com/400x300?text=No+Image'}}
-                                            />
-                                            <div className="absolute top-0 right-0 bg-amber-600 text-white px-3 py-1 rounded-bl-lg font-bold">
-                                                ${item.price.toFixed(2)}
-                                            </div>
+                                            <img src={item.image || 'https://via.placeholder.com/400x300?text=No+Image'} alt={item.name} className="w-full h-full object-cover transition-transform duration-300 hover:scale-110" onError={(e) => {e.target.src='https://via.placeholder.com/400x300?text=No+Image'}} />
+                                            <div className="absolute top-0 right-0 bg-amber-600 text-white px-3 py-1 rounded-bl-lg font-bold">${item.price.toFixed(2)}</div>
                                         </div>
                                         <div className="bg-gradient-to-r from-red-700 to-red-600 h-2"></div>
                                         <div className="p-6">
                                             <h4 className="text-xl font-bold text-red-900 mb-2">{item.name}</h4>
                                             <p className="text-gray-600 text-sm mb-4 min-h-[40px]">{item.description}</p>
-                                            
-                                            <button
-                                                onClick={() => addToCart(item)}
-                                                className={`w-full text-white px-4 py-3 rounded-full transition-all transform hover:scale-105 shadow-md flex items-center justify-center gap-2 font-semibold ${
-                                                    item.isPreOrder 
-                                                    ? 'bg-blue-700 hover:bg-blue-800' 
-                                                    : 'bg-red-800 hover:bg-red-900'
-                                                }`}
-                                            >
-                                                {item.isPreOrder ? (
-                                                    <>
-                                                        <CalendarClock className="w-5 h-5" />
-                                                        Pre-Order Now
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Plus className="w-5 h-5" />
-                                                        Add to Cart
-                                                    </>
-                                                )}
+                                            <button onClick={() => addToCart(item)} className={`w-full text-white px-4 py-3 rounded-full transition-all transform hover:scale-105 shadow-md flex items-center justify-center gap-2 font-semibold ${item.isPreOrder ? 'bg-blue-700 hover:bg-blue-800' : 'bg-red-800 hover:bg-red-900'}`}>
+                                                {item.isPreOrder ? <><CalendarClock className="w-5 h-5" />Pre-Order Now</> : <><Plus className="w-5 h-5" />Add to Cart</>}
                                             </button>
                                         </div>
                                     </div>
@@ -318,85 +228,39 @@
                             <div className="fixed right-0 top-0 h-full w-full md:w-96 bg-white shadow-2xl overflow-y-auto animate-slide-left">
                                 <div className="sticky top-0 bg-red-900 text-white p-4 flex items-center justify-between z-10">
                                     <h3 className="text-2xl font-bold">Your Cart</h3>
-                                    <button onClick={() => setShowCart(false)} className="hover:bg-red-800 p-2 rounded text-2xl leading-none">
-                                        &times;
-                                    </button>
+                                    <button onClick={() => setShowCart(false)} className="hover:bg-red-800 p-2 rounded text-2xl leading-none">&times;</button>
                                 </div>
-
                                 {cart.length === 0 ? (
-                                    <div className="p-8 text-center text-gray-500">
-                                        <div className="flex justify-center mb-4">
-                                            <ShoppingCart className="w-16 h-16 opacity-50" />
-                                        </div>
-                                        <p>Your cart is empty</p>
-                                    </div>
+                                    <div className="p-8 text-center text-gray-500"><div className="flex justify-center mb-4"><ShoppingCart className="w-16 h-16 opacity-50" /></div><p>Your cart is empty</p></div>
                                 ) : (
                                     <>
                                         <div className="p-4">
                                             {cart.map(item => (
                                                 <div key={item.id} className="bg-gray-50 rounded-lg p-4 mb-3 shadow border-l-4 border-transparent hover:border-red-900 transition">
                                                     <div className="flex gap-3 mb-3">
-                                                        <img 
-                                                            src={item.image} 
-                                                            alt={item.name}
-                                                            className="w-20 h-20 object-cover rounded"
-                                                        />
+                                                        <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded" />
                                                         <div className="flex-1">
                                                             <div className="flex justify-between items-start">
-                                                                <div>
-                                                                    <h4 className="font-bold text-red-900">{item.name}</h4>
-                                                                    {item.isPreOrder && (
-                                                                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">
-                                                                            PRE-ORDER
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <button
-                                                                    onClick={() => removeFromCart(item.id)}
-                                                                    className="text-red-600 hover:text-red-800"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
+                                                                <div><h4 className="font-bold text-red-900">{item.name}</h4>{item.isPreOrder && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">PRE-ORDER</span>}</div>
+                                                                <button onClick={() => removeFromCart(item.id)} className="text-red-600 hover:text-red-800"><Trash2 className="w-4 h-4" /></button>
                                                             </div>
                                                             <p className="text-sm text-gray-600 mt-1">${item.price.toFixed(2)} each</p>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3 bg-white rounded-full px-2 py-1 shadow">
-                                                            <button
-                                                                onClick={() => updateQuantity(item.id, -1)}
-                                                                className="bg-red-100 hover:bg-red-200 text-red-900 w-8 h-8 rounded-full flex items-center justify-center font-bold"
-                                                            >
-                                                                <Minus className="w-4 h-4" />
-                                                            </button>
+                                                            <button onClick={() => updateQuantity(item.id, -1)} className="bg-red-100 hover:bg-red-200 text-red-900 w-8 h-8 rounded-full flex items-center justify-center font-bold"><Minus className="w-4 h-4" /></button>
                                                             <span className="font-bold w-8 text-center">{item.quantity}</span>
-                                                            <button
-                                                                onClick={() => updateQuantity(item.id, 1)}
-                                                                className="bg-red-100 hover:bg-red-200 text-red-900 w-8 h-8 rounded-full flex items-center justify-center font-bold"
-                                                            >
-                                                                <Plus className="w-4 h-4" />
-                                                            </button>
+                                                            <button onClick={() => updateQuantity(item.id, 1)} className="bg-red-100 hover:bg-red-200 text-red-900 w-8 h-8 rounded-full flex items-center justify-center font-bold"><Plus className="w-4 h-4" /></button>
                                                         </div>
                                                         <span className="font-bold text-amber-700 text-lg">${(item.price * item.quantity).toFixed(2)}</span>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
-
                                         <div className="sticky bottom-0 bg-white border-t-2 border-red-900 p-4">
-                                            <div className="flex justify-between items-center mb-4 text-xl font-bold">
-                                                <span className="text-red-900">Total:</span>
-                                                <span className="text-amber-700">${getTotal()}</span>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    setShowCart(false);
-                                                    setShowCheckout(true);
-                                                }}
-                                                className="w-full bg-gradient-to-r from-red-800 to-red-700 hover:from-red-900 hover:to-red-800 text-white py-4 rounded-lg font-bold text-lg shadow-lg transform transition hover:scale-105"
-                                            >
-                                                Proceed to Checkout
-                                            </button>
+                                            <div className="flex justify-between items-center mb-4 text-xl font-bold"><span className="text-red-900">Total:</span><span className="text-amber-700">${getTotal()}</span></div>
+                                            <button onClick={() => { setShowCart(false); setShowCheckout(true); }} className="w-full bg-gradient-to-r from-red-800 to-red-700 hover:from-red-900 hover:to-red-800 text-white py-4 rounded-lg font-bold text-lg shadow-lg transform transition hover:scale-105">Proceed to Checkout</button>
                                         </div>
                                     </>
                                 )}
@@ -408,93 +272,44 @@
                     {showCheckout && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 animate-fade-in">
                             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
-                                <div className="bg-red-900 text-white p-6 rounded-t-lg">
-                                    <h3 className="text-2xl font-bold">Checkout</h3>
-                                </div>
-                                
+                                <div className="bg-red-900 text-white p-6 rounded-t-lg"><h3 className="text-2xl font-bold">Checkout</h3></div>
                                 <div className="p-6">
-                                    {/* Order Summary */}
                                     <div className="mb-6">
                                         <h4 className="font-bold text-red-900 text-lg mb-3">Order Summary</h4>
-                                        <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
+                                        <div className="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto">
                                             {cart.map(item => (
                                                 <div key={item.id} className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 last:border-0">
-                                                    <div className="flex items-center gap-3 flex-1">
-                                                        <img 
-                                                            src={item.image} 
-                                                            alt={item.name}
-                                                            className="w-12 h-12 object-cover rounded"
-                                                        />
-                                                        <div className="flex-1">
-                                                            <div className="font-semibold text-gray-800 flex items-center gap-2">
-                                                                {item.name}
-                                                                {item.isPreOrder && (
-                                                                    <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded border border-blue-200 uppercase">
-                                                                        Pre-Order
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="text-sm text-gray-600">
-                                                                ${item.price.toFixed(2)} × {item.quantity}
-                                                            </div>
-                                                        </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <img src={item.image} className="w-10 h-10 object-cover rounded" />
+                                                        <div className="font-semibold text-gray-800">{item.name} x {item.quantity}</div>
                                                     </div>
-                                                    <div className="font-bold text-amber-700 w-20 text-right">
-                                                        ${(item.price * item.quantity).toFixed(2)}
-                                                    </div>
+                                                    <div className="font-bold text-amber-700">${(item.price * item.quantity).toFixed(2)}</div>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-
-                                    {/* Customer Name */}
                                     <div className="mb-6">
                                         <label className="block text-red-900 font-semibold mb-2">Your Name *</label>
-                                        <input
-                                            type="text"
-                                            value={customerName}
-                                            onChange={(e) => setCustomerName(e.target.value)}
-                                            placeholder="Enter your full name"
-                                            className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-red-800 focus:outline-none text-lg"
-                                        />
+                                        <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Enter your full name" className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-red-800 focus:outline-none text-lg" />
                                     </div>
-
-                                    {/* Pickup Date Selection (Crucial for Pre-orders) */}
                                     <div className="mb-6">
                                         <label className="block text-red-900 font-semibold mb-2">Pickup Date & Time *</label>
-                                        <input
-                                            type="datetime-local"
-                                            value={pickupDate}
-                                            onChange={(e) => setPickupDate(e.target.value)}
-                                            className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-red-800 focus:outline-none text-lg"
-                                        />
-                                        <p className="text-sm text-gray-500 mt-1">Please select when you will pick up your order.</p>
+                                        <input type="datetime-local" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-red-800 focus:outline-none text-lg" />
+                                        
+                                        {/* MONTH DAY YEAR DISPLAY */}
+                                        {pickupDate && (
+                                            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-800">
+                                                <CalendarClock className="w-5 h-5" />
+                                                <span className="font-medium">Scheduled: {formatToFriendlyDate(pickupDate)}</span>
+                                            </div>
+                                        )}
                                     </div>
-
-                                    {/* Total */}
                                     <div className="bg-gradient-to-r from-amber-50 to-red-50 p-6 rounded-lg mb-6 border-2 border-amber-600">
-                                        <div className="flex justify-between items-center text-2xl font-bold">
-                                            <span className="text-red-900">Total:</span>
-                                            <span className="text-amber-700">${getTotal()}</span>
-                                        </div>
+                                        <div className="flex justify-between items-center text-2xl font-bold"><span className="text-red-900">Total:</span><span className="text-amber-700">${getTotal()}</span></div>
                                     </div>
-
-                                    {/* Action Buttons */}
                                     <div className="flex gap-3">
-                                        <button
-                                            onClick={() => setShowCheckout(false)}
-                                            className="flex-1 border-2 border-red-900 text-red-900 py-3 rounded-lg font-bold hover:bg-red-50 transition"
-                                            disabled={submitting}
-                                        >
-                                            Back to Cart
-                                        </button>
-                                        <button
-                                            onClick={handleCheckout}
-                                            disabled={submitting}
-                                            className="flex-1 bg-red-800 hover:bg-red-900 text-white py-3 rounded-lg font-bold shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {submitting ? 'Submitting...' : 'Place Order'}
-                                        </button>
+                                        <button onClick={() => setShowCheckout(false)} className="flex-1 border-2 border-red-900 text-red-900 py-3 rounded-lg font-bold hover:bg-red-50 transition" disabled={submitting}>Back to Cart</button>
+                                        <button onClick={handleCheckout} disabled={submitting} className="flex-1 bg-red-800 hover:bg-red-900 text-white py-3 rounded-lg font-bold shadow-lg transition disabled:opacity-50">{submitting ? 'Submitting...' : 'Place Order'}</button>
                                     </div>
                                 </div>
                             </div>
