@@ -1,0 +1,476 @@
+import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Plus, Minus, Trash2, Cross } from 'lucide-react';
+
+const AghabyMenu = () => {
+  const [menuItems, setMenuItems] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCart, setShowCart] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+
+  // Replace these URLs with your actual Google Sheets URLs
+  const MENU_SHEET_URL = 'YOUR_MENU_GOOGLE_SHEET_CSV_URL_HERE';
+  const ORDER_FORM_URL = 'YOUR_GOOGLE_FORM_ACTION_URL_HERE';
+
+  useEffect(() => {
+    fetchMenuData();
+  }, []);
+
+  const fetchMenuData = async () => {
+    // Sample data for demonstration
+    const sampleData = [
+      { 
+        id: 1, 
+        name: 'Falafel Sandwich', 
+        category: 'Sandwiches', 
+        price: 8.99, 
+        description: 'Crispy falafel with tahini sauce',
+        image: 'https://images.unsplash.com/photo-1593001874117-4444ccc0c2e0?w=400&h=300&fit=crop'
+      },
+      { 
+        id: 2, 
+        name: 'Koshari', 
+        category: 'Main Dishes', 
+        price: 12.99, 
+        description: 'Traditional Egyptian rice, lentils & pasta',
+        image: 'https://images.unsplash.com/photo-1585937421612-70a008356072?w=400&h=300&fit=crop'
+      },
+      { 
+        id: 3, 
+        name: 'Molokhia', 
+        category: 'Main Dishes', 
+        price: 14.99, 
+        description: 'Green soup with rice',
+        image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop'
+      },
+      { 
+        id: 4, 
+        name: 'Stuffed Grape Leaves', 
+        category: 'Appetizers', 
+        price: 9.99, 
+        description: 'Rice & herbs wrapped in grape leaves',
+        image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=400&h=300&fit=crop'
+      },
+      { 
+        id: 5, 
+        name: 'Hummus Plate', 
+        category: 'Appetizers', 
+        price: 7.99, 
+        description: 'Creamy chickpea dip with pita',
+        image: 'https://images.unsplash.com/photo-1571943466173-e16a7c0d8c8f?w=400&h=300&fit=crop'
+      },
+      { 
+        id: 6, 
+        name: 'Basbousa', 
+        category: 'Desserts', 
+        price: 5.99, 
+        description: 'Sweet semolina cake',
+        image: 'https://images.unsplash.com/photo-1587241321921-91a834d82ffc?w=400&h=300&fit=crop'
+      },
+    ];
+
+    setTimeout(() => {
+      setMenuItems(sampleData);
+      setLoading(false);
+    }, 1000);
+
+    /* Uncomment to use Google Sheets for menu:
+    try {
+      const response = await fetch(MENU_SHEET_URL);
+      const text = await response.text();
+      const rows = text.split('\n').slice(1);
+      const items = rows.map((row, index) => {
+        const [name, category, price, description, image] = row.split(',');
+        return {
+          id: index + 1,
+          name: name?.trim(),
+          category: category?.trim(),
+          price: parseFloat(price),
+          description: description?.trim(),
+          image: image?.trim()
+        };
+      }).filter(item => item.name);
+      setMenuItems(items);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching menu:', error);
+      setLoading(false);
+    }
+    */
+  };
+
+  const addToCart = (item) => {
+    const existing = cart.find(i => i.id === item.id);
+    if (existing) {
+      setCart(cart.map(i => 
+        i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+      ));
+    } else {
+      setCart([...cart, { ...item, quantity: 1 }]);
+    }
+  };
+
+  const updateQuantity = (id, delta) => {
+    setCart(cart.map(item => 
+      item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
+    ).filter(item => item.quantity > 0));
+  };
+
+  const removeFromCart = (id) => {
+    setCart(cart.filter(item => item.id !== id));
+  };
+
+  const getTotal = () => {
+    return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
+  };
+
+  const handleCheckout = async () => {
+    if (!customerName.trim()) {
+      alert('Please enter your name');
+      return;
+    }
+
+    setSubmitting(true);
+
+    // Prepare order data
+    const orderDate = new Date().toLocaleString();
+    const orderItems = cart.map(item => 
+      `${item.name} x${item.quantity} ($${(item.price * item.quantity).toFixed(2)})`
+    ).join(', ');
+    const total = getTotal();
+
+    try {
+      // Send to Google Sheets via Google Form
+      const formData = new FormData();
+      formData.append('entry.NAME_FIELD_ID', customerName); // Replace with actual field ID
+      formData.append('entry.DATE_FIELD_ID', orderDate);
+      formData.append('entry.ITEMS_FIELD_ID', orderItems);
+      formData.append('entry.TOTAL_FIELD_ID', total);
+
+      await fetch(ORDER_FORM_URL, {
+        method: 'POST',
+        body: formData,
+        mode: 'no-cors'
+      });
+
+      alert(`Order submitted successfully!\n\nName: ${customerName}\nTotal: $${total}\n\nThank you for your order! God bless you.`);
+      setCart([]);
+      setCustomerName('');
+      setShowCheckout(false);
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      alert('There was an error submitting your order. Please try again or contact us directly.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const categories = [...new Set(menuItems.map(item => item.category))];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-red-50">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-red-900 to-red-800 text-white shadow-lg sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Cross className="w-10 h-10 text-amber-300" />
+              <div>
+                <h1 className="text-3xl font-bold tracking-wide">St. Mark Coptic Orthodox Church</h1>
+                <p className="text-amber-200 text-sm mt-1">Aghapy Menu - Blessed Food Service</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCart(!showCart)}
+              className="relative bg-amber-600 hover:bg-amber-700 px-6 py-3 rounded-full transition-all transform hover:scale-105 shadow-lg"
+            >
+              <ShoppingCart className="inline w-6 h-6 mr-2" />
+              <span className="font-semibold">Cart ({cart.length})</span>
+              {cart.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold animate-pulse">
+                  {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-red-800 to-amber-700 text-white py-12 text-center shadow-xl">
+        <h2 className="text-4xl font-bold mb-3">Welcome to Our Aghapy Service</h2>
+        <p className="text-xl text-amber-100 max-w-2xl mx-auto px-4">
+          Blessed food prepared with love and prayer for our community
+        </p>
+        <div className="mt-4 text-amber-200 text-sm">
+          ☦ In the name of the Father, the Son, and the Holy Spirit ☦
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-red-800 border-t-transparent"></div>
+            <p className="mt-4 text-red-900 text-lg">Loading menu...</p>
+          </div>
+        ) : (
+          <>
+            {categories.map((category, idx) => (
+              <div key={category} className="mb-12 animate-fade-in" style={{ animationDelay: `${idx * 100}ms` }}>
+                <h3 className="text-3xl font-bold text-red-900 mb-6 pb-2 border-b-4 border-amber-600 inline-block">
+                  {category}
+                </h3>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                  {menuItems.filter(item => item.category === category).map((item, i) => (
+                    <div
+                      key={item.id}
+                      className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:scale-105 hover:shadow-2xl animate-slide-up"
+                      style={{ animationDelay: `${i * 50}ms` }}
+                    >
+                      <div className="relative h-48 overflow-hidden">
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                        />
+                        <div className="absolute top-0 right-0 bg-amber-600 text-white px-3 py-1 rounded-bl-lg font-bold">
+                          ${item.price.toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="bg-gradient-to-r from-red-700 to-red-600 h-2"></div>
+                      <div className="p-6">
+                        <h4 className="text-xl font-bold text-red-900 mb-2">{item.name}</h4>
+                        <p className="text-gray-600 text-sm mb-4 min-h-[40px]">{item.description}</p>
+                        <button
+                          onClick={() => addToCart(item)}
+                          className="w-full bg-red-800 hover:bg-red-900 text-white px-4 py-3 rounded-full transition-all transform hover:scale-105 shadow-md flex items-center justify-center gap-2 font-semibold"
+                        >
+                          <Plus className="w-5 h-5" />
+                          Add to Cart
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Cart Sidebar */}
+      {showCart && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 animate-fade-in">
+          <div className="fixed right-0 top-0 h-full w-full md:w-96 bg-white shadow-2xl overflow-y-auto animate-slide-left">
+            <div className="sticky top-0 bg-red-900 text-white p-4 flex items-center justify-between z-10">
+              <h3 className="text-2xl font-bold">Your Cart</h3>
+              <button onClick={() => setShowCart(false)} className="hover:bg-red-800 p-2 rounded">
+                ✕
+              </button>
+            </div>
+
+            {cart.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                <ShoppingCart className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>Your cart is empty</p>
+              </div>
+            ) : (
+              <>
+                <div className="p-4">
+                  {cart.map(item => (
+                    <div key={item.id} className="bg-gray-50 rounded-lg p-4 mb-3 shadow">
+                      <div className="flex gap-3 mb-3">
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-20 h-20 object-cover rounded"
+                        />
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <h4 className="font-bold text-red-900">{item.name}</h4>
+                            <button
+                              onClick={() => removeFromCart(item.id)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <p className="text-sm text-gray-600">${item.price.toFixed(2)} each</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 bg-white rounded-full px-2 py-1 shadow">
+                          <button
+                            onClick={() => updateQuantity(item.id, -1)}
+                            className="bg-red-100 hover:bg-red-200 text-red-900 w-8 h-8 rounded-full flex items-center justify-center font-bold"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="font-bold w-8 text-center">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.id, 1)}
+                            className="bg-red-100 hover:bg-red-200 text-red-900 w-8 h-8 rounded-full flex items-center justify-center font-bold"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <span className="font-bold text-amber-700 text-lg">${(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="sticky bottom-0 bg-white border-t-2 border-red-900 p-4">
+                  <div className="flex justify-between items-center mb-4 text-xl font-bold">
+                    <span className="text-red-900">Total:</span>
+                    <span className="text-amber-700">${getTotal()}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowCart(false);
+                      setShowCheckout(true);
+                    }}
+                    className="w-full bg-gradient-to-r from-red-800 to-red-700 hover:from-red-900 hover:to-red-800 text-white py-4 rounded-lg font-bold text-lg shadow-lg transform transition hover:scale-105"
+                  >
+                    Proceed to Checkout
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Modal */}
+      {showCheckout && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+            <div className="bg-red-900 text-white p-6 rounded-t-lg">
+              <h3 className="text-2xl font-bold">Checkout</h3>
+            </div>
+            
+            <div className="p-6">
+              {/* Order Summary */}
+              <div className="mb-6">
+                <h4 className="font-bold text-red-900 text-lg mb-3">Order Summary</h4>
+                <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
+                  {cart.map(item => (
+                    <div key={item.id} className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 last:border-0">
+                      <div className="flex items-center gap-3 flex-1">
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                        <div className="flex-1">
+                          <div className="font-semibold text-gray-800">{item.name}</div>
+                          <div className="text-sm text-gray-600">
+                            ${item.price.toFixed(2)} × {item.quantity}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 bg-white rounded-full px-2 py-1 shadow-sm">
+                          <button
+                            onClick={() => updateQuantity(item.id, -1)}
+                            className="bg-red-100 hover:bg-red-200 text-red-900 w-7 h-7 rounded-full flex items-center justify-center"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="font-bold w-6 text-center text-sm">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.id, 1)}
+                            className="bg-red-100 hover:bg-red-200 text-red-900 w-7 h-7 rounded-full flex items-center justify-center"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <span className="font-bold text-amber-700 w-20 text-right">
+                          ${(item.price * item.quantity).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Customer Name */}
+              <div className="mb-6">
+                <label className="block text-red-900 font-semibold mb-2">Your Name *</label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-red-800 focus:outline-none text-lg"
+                />
+              </div>
+
+              {/* Total */}
+              <div className="bg-gradient-to-r from-amber-50 to-red-50 p-6 rounded-lg mb-6 border-2 border-amber-600">
+                <div className="flex justify-between items-center text-2xl font-bold">
+                  <span className="text-red-900">Total:</span>
+                  <span className="text-amber-700">${getTotal()}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCheckout(false)}
+                  className="flex-1 border-2 border-red-900 text-red-900 py-3 rounded-lg font-bold hover:bg-red-50 transition"
+                  disabled={submitting}
+                >
+                  Back to Cart
+                </button>
+                <button
+                  onClick={handleCheckout}
+                  disabled={submitting}
+                  className="flex-1 bg-red-800 hover:bg-red-900 text-white py-3 rounded-lg font-bold shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Submitting...' : 'Place Order'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slide-up {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slide-left {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        @keyframes scale-in {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+        .animate-slide-up {
+          animation: slide-up 0.5s ease-out;
+          animation-fill-mode: both;
+        }
+        .animate-slide-left {
+          animation: slide-left 0.3s ease-out;
+        }
+        .animate-scale-in {
+          animation: scale-in 0.3s ease-out;
+        }
+      `}} />
+    </div>
+  );
+};
+
+export default AghabyMenu;
