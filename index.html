@@ -82,7 +82,6 @@
             // --- FORM STATE ---
             const [customerName, setCustomerName] = useState('');
             const [pickupDate, setPickupDate] = useState('');
-            const [comments, setComments] = useState(''); // NEW: Added comments state
 
             const ORDER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdi6yz0COgqnoeqIW12rDYj2XFVwmlQJK4SlGL2BL2F2yQflw/formResponse';
             const MENU_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZC9Hg8JCm4Oo1mLyhV0CxQAyHUWoX-r8wT7x4QHba01Yn5rV7pjBd53jb5lj_KH3u/exec';
@@ -130,12 +129,18 @@
                 if (existing) {
                     setCart(cart.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
                 } else {
-                    setCart([...cart, { ...item, quantity: 1 }]);
+                    // NEW: Initialize with empty comment
+                    setCart([...cart, { ...item, quantity: 1, comment: '' }]);
                 }
             };
 
             const updateQuantity = (id, delta) => {
                 setCart(cart.map(item => item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item).filter(item => item.quantity > 0));
+            };
+
+            // NEW: Function to handle individual item comments
+            const updateItemComment = (id, text) => {
+                setCart(cart.map(item => item.id === id ? { ...item, comment: text } : item));
             };
 
             const getTotal = () => cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
@@ -156,17 +161,24 @@
                     formData.append('entry.1988934435', customerName);
                     formData.append('entry.1896473386', orderDate);
                     formData.append('entry.260512440', friendlyPickup);
+                    
+                    // --- PREPARING LISTS ---
+                    // 1. List of Names
                     formData.append('entry.594185743', cart.map(i => `${i.name}${i.isPreOrder ? ' (PRE-ORDER)' : ''}`).join('\n'));
+                    
+                    // 2. List of Quantities
                     formData.append('entry.1477240420', cart.map(i => i.quantity).join('\n'));
+                    
+                    // 3. List of Comments (If empty, send a dash '-' to keep rows aligned)
+                    const commentsList = cart.map(i => i.comment && i.comment.trim() !== '' ? i.comment : '-').join('\n');
+                    formData.append('entry.108738790', commentsList);
+
                     formData.append('entry.644258044', getTotal());
-                    // NEW: Append comments to the form data using the ID found in your link
-                    formData.append('entry.108738790', comments); 
 
                     await fetch(ORDER_FORM_URL, { method: 'POST', body: formData, mode: 'no-cors' });
                     alert(`Order successful!\nPickup: ${friendlyPickup}`);
                     setCart([]); 
                     setCustomerName(''); 
-                    setComments(''); // Reset comments
                     setShowCheckout(false);
                 } catch (e) {
                     alert('Submission error. Please try again.');
@@ -258,19 +270,30 @@
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-container">
                                     {cart.map(item => (
-                                        <div key={item.id} className="flex gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                            <img src={item.image} className="w-16 h-16 object-cover rounded-lg shadow-sm" />
-                                            <div className="flex-1">
-                                                <h5 className="font-bold text-red-900 text-sm">{item.name}</h5>
-                                                <div className="flex items-center justify-between mt-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center font-bold shadow-sm">-</button>
-                                                        <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
-                                                        <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center font-bold shadow-sm">+</button>
+                                        <div key={item.id} className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col gap-3">
+                                            {/* Item Info Top Row */}
+                                            <div className="flex gap-3">
+                                                <img src={item.image} className="w-16 h-16 object-cover rounded-lg shadow-sm" />
+                                                <div className="flex-1">
+                                                    <h5 className="font-bold text-red-900 text-sm">{item.name}</h5>
+                                                    <div className="flex items-center justify-between mt-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center font-bold shadow-sm">-</button>
+                                                            <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
+                                                            <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center font-bold shadow-sm">+</button>
+                                                        </div>
+                                                        <span className="font-bold text-amber-700">${(item.price * item.quantity).toFixed(2)}</span>
                                                     </div>
-                                                    <span className="font-bold text-amber-700">${(item.price * item.quantity).toFixed(2)}</span>
                                                 </div>
                                             </div>
+                                            {/* NEW: Per Item Comment Box */}
+                                            <input 
+                                                type="text" 
+                                                placeholder="Special request? (e.g. No onion)" 
+                                                value={item.comment || ''}
+                                                onChange={(e) => updateItemComment(item.id, e.target.value)}
+                                                className="w-full text-xs p-2 bg-white border border-gray-200 rounded-lg focus:border-red-800 focus:outline-none"
+                                            />
                                         </div>
                                     ))}
                                     {cart.length === 0 && <p className="text-center text-gray-400 py-10">Your cart is empty</p>}
@@ -307,17 +330,7 @@
                                             <p className="mt-2 text-[10px] text-amber-700 font-medium">Selected: {formatFriendlyDate(pickupDate)}</p>
                                         )}
                                     </div>
-                                    {/* NEW: Comments Field */}
-                                    <div>
-                                        <label className="block text-red-900 font-bold text-sm mb-1">Comments / Notes</label>
-                                        <textarea 
-                                            value={comments} 
-                                            onChange={(e) => setComments(e.target.value)} 
-                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 focus:border-red-800 focus:outline-none transition-colors" 
-                                            placeholder="Any special requests? (Optional)"
-                                            rows="2"
-                                        ></textarea>
-                                    </div>
+                                    
                                     <div className="bg-amber-50 p-4 rounded-xl flex justify-between items-center text-lg font-bold text-red-900">
                                         <span>Total:</span><span>${getTotal()}</span>
                                     </div>
