@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1, viewport-fit=cover"
-/>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover">
+
 <title>St. Mark Coptic Orthodox Church – Aghapy</title>
 
 <!-- Tailwind -->
@@ -17,41 +16,42 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
 <style>
-/* iOS system look */
+/* iOS system font */
 html, body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-               "SF Pro Display", Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont,
+               "SF Pro Text", "SF Pro Display",
+               Helvetica, Arial, sans-serif;
+  background: #f2f2f7;
   -webkit-font-smoothing: antialiased;
-  background-color: #f2f2f7;
 }
 
-/* iOS-like animations */
-@keyframes ios-slide-up {
+/* Animations */
+@keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
-@keyframes ios-fade {
+@keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
+/* iOS cards */
 .ios-card {
+  background: white;
   border-radius: 20px;
-  background: #ffffff;
-  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  box-shadow: 0 8px 28px rgba(0,0,0,.08);
 }
 
-.ios-button {
+/* iOS buttons */
+.ios-btn {
   border-radius: 14px;
   padding: 14px;
   font-weight: 600;
-  transition: transform .15s ease, opacity .15s ease;
+  transition: transform .15s ease;
 }
-.ios-button:active {
-  transform: scale(.97);
-  opacity: .85;
-}
+.ios-btn:active { transform: scale(.96); }
 
+/* Safe area */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -64,8 +64,8 @@ html, body {
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-/* ICONS */
-const ShoppingCart = ({ className }) => (
+/* Icons */
+const CartIcon = ({className}) => (
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
  className={className}>
@@ -75,7 +75,7 @@ const ShoppingCart = ({ className }) => (
 </svg>
 );
 
-const Plus = ({ className }) => (
+const PlusIcon = ({className}) => (
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
  className={className}>
@@ -84,139 +84,165 @@ const Plus = ({ className }) => (
 </svg>
 );
 
-const AghabyMenu = () => {
-const [menu, setMenu] = useState([]);
-const [cart, setCart] = useState([]);
-const [showCart, setShowCart] = useState(false);
-const [name, setName] = useState("");
-const [pickup, setPickup] = useState("");
+/* App */
+function AghapyApp() {
+  const [menu, setMenu] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
+  const [name, setName] = useState("");
+  const [pickup, setPickup] = useState("");
 
-useEffect(() => {
-  setPickup(new Date().toISOString().slice(0,16));
-  setMenu([
-    {
-      id:1,
-      name:"Falafel Sandwich",
-      price:5.50,
-      image:"https://via.placeholder.com/400x300",
-      description:"Freshly fried falafel with tahini"
-    },
-    {
-      id:2,
-      name:"Koshary",
-      price:8.00,
-      image:"https://via.placeholder.com/400x300",
-      description:"Classic Egyptian comfort food"
+  const MENU_SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbwZC9Hg8JCm4Oo1mLyhV0CxQAyHUWoX-r8wT7x4QHba01Yn5rV7pjBd53jb5lj_KH3u/exec";
+
+  useEffect(() => {
+    fetch(MENU_SCRIPT_URL)
+      .then(r => r.json())
+      .then(data => {
+        const items = data.map((row, i) => ({
+          id: i + 1,
+          name: row.Name,
+          price: parseFloat(row.Price) || 0,
+          description: row.Description,
+          image: row.Image || "https://via.placeholder.com/400x300"
+        }));
+        setMenu(items);
+      });
+
+    const now = new Date();
+    setPickup(now.toISOString().slice(0,16));
+  }, []);
+
+  const addToCart = (item) => {
+    const found = cart.find(i => i.id === item.id);
+    if(found){
+      setCart(cart.map(i =>
+        i.id === item.id ? {...i, qty: i.qty + 1} : i
+      ));
+    } else {
+      setCart([...cart, {...item, qty: 1}]);
     }
-  ]);
-}, []);
+  };
 
-const addToCart = (item) => {
-  const found = cart.find(i => i.id === item.id);
-  if(found){
-    setCart(cart.map(i => i.id===item.id ? {...i, qty:i.qty+1}:i));
-  } else {
-    setCart([...cart,{...item,qty:1}]);
-  }
-};
+  const total = cart.reduce((s,i)=>s+i.price*i.qty,0).toFixed(2);
 
-const total = cart.reduce((s,i)=>s+i.price*i.qty,0).toFixed(2);
+  return (
+  <div className="min-h-screen safe-bottom">
 
-return (
-<div className="min-h-screen safe-bottom">
+    {/* Header */}
+    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
+      <div className="flex items-center justify-between px-4 py-4">
+        <h1 className="text-xl font-bold">
+          St. Mark Aghapy
+        </h1>
 
-{/* HEADER */}
-<header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b">
-  <div className="flex items-center justify-between px-4 py-4">
-    <h1 className="text-xl font-bold">St. Mark Aghapy</h1>
-    <button onClick={()=>setShowCart(true)} className="relative">
-      <ShoppingCart className="w-7 h-7"/>
-      {cart.length>0 && (
-        <span className="absolute -top-2 -right-2 bg-red-600 text-white
-          w-5 h-5 rounded-full text-xs flex items-center justify-center">
-          {cart.reduce((s,i)=>s+i.qty,0)}
-        </span>
-      )}
-    </button>
-  </div>
-</header>
-
-{/* HERO */}
-<div className="px-6 pt-6">
-  <div className="ios-card p-6 text-center bg-gradient-to-br from-red-800 to-amber-700 text-white">
-    <h2 className="text-2xl font-bold mb-2">5 loaves & 2 fish</h2>
-    <p className="opacity-90">Blessed food for the community</p>
-  </div>
-</div>
-
-{/* MENU */}
-<div className="px-6 py-6 space-y-6">
-{menu.map(item=>(
-  <div key={item.id} className="ios-card overflow-hidden">
-    <img src={item.image} className="h-44 w-full object-cover"/>
-    <div className="p-5">
-      <div className="flex justify-between items-center mb-1">
-        <h3 className="font-bold text-lg">{item.name}</h3>
-        <span className="font-semibold text-amber-700">${item.price}</span>
+        <button onClick={()=>setShowCart(true)} className="relative">
+          <CartIcon className="w-7 h-7"/>
+          {cart.length>0 && (
+            <span className="absolute -top-2 -right-2 bg-red-600
+              text-white w-5 h-5 rounded-full text-xs
+              flex items-center justify-center">
+              {cart.reduce((s,i)=>s+i.qty,0)}
+            </span>
+          )}
+        </button>
       </div>
-      <p className="text-sm text-gray-500 mb-4">{item.description}</p>
-      <button
-        onClick={()=>addToCart(item)}
-        className="ios-button bg-red-800 text-white w-full flex justify-center gap-2">
-        <Plus className="w-5 h-5"/> Add to Cart
-      </button>
-    </div>
-  </div>
-))}
-</div>
+    </header>
 
-{/* CART – iOS Bottom Sheet */}
-{showCart && (
-<div className="fixed inset-0 bg-black/40 z-50 flex items-end"
-     style={{animation:"ios-fade .2s"}}>
-  <div className="bg-white w-full rounded-t-3xl p-6"
-       style={{animation:"ios-slide-up .3s"}}>
-    <div className="flex justify-between mb-4">
-      <h3 className="font-bold text-xl">Your Order</h3>
-      <button onClick={()=>setShowCart(false)} className="text-gray-400 text-xl">✕</button>
-    </div>
-
-    {cart.map(i=>(
-      <div key={i.id} className="flex justify-between mb-2">
-        <span>{i.name} × {i.qty}</span>
-        <span>${(i.qty*i.price).toFixed(2)}</span>
+    {/* Hero */}
+    <div className="px-5 pt-5">
+      <div className="ios-card p-6 text-center
+        bg-gradient-to-br from-red-800 to-amber-700 text-white">
+        <h2 className="text-2xl font-bold mb-2">
+          5 Loaves & 2 Fish
+        </h2>
+        <p className="opacity-90">
+          Feed the Gathering Service
+        </p>
       </div>
-    ))}
-
-    <div className="border-t mt-4 pt-4 font-bold flex justify-between">
-      <span>Total</span>
-      <span>${total}</span>
     </div>
 
-    <input
-      placeholder="Full name"
-      value={name}
-      onChange={e=>setName(e.target.value)}
-      className="w-full mt-4 border rounded-xl px-4 py-3"/>
+    {/* Menu */}
+    <div className="px-5 py-6 space-y-6">
+      {menu.map(item => (
+        <div key={item.id} className="ios-card overflow-hidden">
+          <img src={item.image}
+               className="h-44 w-full object-cover"/>
+          <div className="p-5">
+            <div className="flex justify-between mb-1">
+              <h3 className="font-bold text-lg">{item.name}</h3>
+              <span className="font-semibold text-amber-700">
+                ${item.price.toFixed(2)}
+              </span>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              {item.description}
+            </p>
+            <button
+              onClick={()=>addToCart(item)}
+              className="ios-btn bg-red-800 text-white w-full
+                         flex items-center justify-center gap-2">
+              <PlusIcon className="w-5 h-5"/>
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
 
-    <input
-      type="datetime-local"
-      value={pickup}
-      onChange={e=>setPickup(e.target.value)}
-      className="w-full mt-3 border rounded-xl px-4 py-3"/>
+    {/* Cart Bottom Sheet */}
+    {showCart && (
+      <div className="fixed inset-0 bg-black/40 z-50 flex items-end"
+           style={{animation:"fadeIn .2s"}}>
+        <div className="bg-white w-full rounded-t-3xl p-6"
+             style={{animation:"slideUp .3s"}}>
+          <div className="flex justify-between mb-4">
+            <h3 className="text-xl font-bold">Your Order</h3>
+            <button onClick={()=>setShowCart(false)}
+                    className="text-xl text-gray-400">
+              ✕
+            </button>
+          </div>
 
-    <button className="ios-button bg-red-800 text-white w-full mt-4">
-      Place Order
-    </button>
+          {cart.map(i=>(
+            <div key={i.id}
+                 className="flex justify-between mb-2">
+              <span>{i.name} × {i.qty}</span>
+              <span>${(i.qty*i.price).toFixed(2)}</span>
+            </div>
+          ))}
+
+          <div className="border-t pt-4 mt-4
+                          font-bold flex justify-between">
+            <span>Total</span>
+            <span>${total}</span>
+          </div>
+
+          <input
+            placeholder="Full name"
+            value={name}
+            onChange={e=>setName(e.target.value)}
+            className="w-full mt-4 border rounded-xl px-4 py-3"/>
+
+          <input
+            type="datetime-local"
+            value={pickup}
+            onChange={e=>setPickup(e.target.value)}
+            className="w-full mt-3 border rounded-xl px-4 py-3"/>
+
+          <button className="ios-btn bg-red-800 text-white w-full mt-4">
+            Place Order
+          </button>
+        </div>
+      </div>
+    )}
+
   </div>
-</div>
-)}
+  );
+}
 
-</div>
-);
-};
-
-ReactDOM.createRoot(document.getElementById("root")).render(<AghabyMenu/>);
+ReactDOM.createRoot(document.getElementById("root"))
+  .render(<AghapyApp/>);
 </script>
 </body>
 </html>
