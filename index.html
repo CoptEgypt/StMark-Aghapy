@@ -1,308 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>St. Mark Coptic Orthodox Church - Aghapy Menu</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <style>
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slide-left { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        @keyframes scale-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        
-        .animate-fade-in { animation: fade-in 0.3s ease-out; }
-        .animate-slide-up { animation: slide-up 0.5s ease-out; animation-fill-mode: both; }
-        .animate-slide-left { animation: slide-left 0.3s ease-out; }
-        .animate-scale-in { animation: scale-in 0.3s ease-out; }
-    </style>
+<meta charset="UTF-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, viewport-fit=cover"
+/>
+<title>St. Mark Coptic Orthodox Church – Aghapy</title>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- React -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+/* iOS system look */
+html, body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+               "SF Pro Display", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-color: #f2f2f7;
+}
+
+/* iOS-like animations */
+@keyframes ios-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes ios-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ios-card {
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+}
+
+.ios-button {
+  border-radius: 14px;
+  padding: 14px;
+  font-weight: 600;
+  transition: transform .15s ease, opacity .15s ease;
+}
+.ios-button:active {
+  transform: scale(.97);
+  opacity: .85;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+</style>
 </head>
+
 <body>
-    <div id="root"></div>
+<div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+<script type="text/babel">
+const { useState, useEffect } = React;
 
-        // --- ICONS ---
-        const FishIcon = ({ className, style }) => (
-            <svg className={className} style={style} fill="currentColor" viewBox="0 0 24 24">
-                <path d="M21,12C21,12 18,5 11,5C9.22,5 7.63,5.43 6.25,6.13L2,3V21L6.25,17.87C7.63,18.57 9.22,19 11,19C18,19 21,12 21,12M11,17C10.14,17 9.32,16.89 8.56,16.7L11.11,14.15L9.69,12.74L7.14,15.29C6.41,14.39 6,13.25 6,12C6,10.75 6.41,9.61 7.14,8.71L9.69,11.26L11.11,9.85L8.56,7.3C9.32,7.11 10.14,7 11,7C14.7,7 17.38,10.11 18.66,12C17.38,13.89 14.7,17 11,17Z" />
-            </svg>
-        );
-        const ShoppingCart = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>
-        );
-        const Plus = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        );
-        const Minus = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        );
-        const Trash2 = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-        );
-        const Cross = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M11 2h2v6h6v2h-6v12h-2V10H5V8h6V2z"/></svg>
-        );
-        const CalendarClock = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h5"/><path d="M21 17h-5"/><path d="m19 14 2 2-2 2"/></svg>
-        );
+/* ICONS */
+const ShoppingCart = ({ className }) => (
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+ strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+ className={className}>
+<circle cx="8" cy="21" r="1"/>
+<circle cx="19" cy="21" r="1"/>
+<path d="M2 2h2l2.6 12.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4H5.1"/>
+</svg>
+);
 
-        const AghabyMenu = () => {
-            const [menuItems, setMenuItems] = useState([]);
-            const [cart, setCart] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [errorMsg, setErrorMsg] = useState('');
-            const [showCart, setShowCart] = useState(false);
-            const [showCheckout, setShowCheckout] = useState(false);
-            const [submitting, setSubmitting] = useState(false);
-            const [customerName, setCustomerName] = useState('');
-            const [pickupDate, setPickupDate] = useState('');
+const Plus = ({ className }) => (
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+ strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+ className={className}>
+<line x1="12" y1="5" x2="12" y2="19"/>
+<line x1="5" y1="12" x2="19" y2="12"/>
+</svg>
+);
 
-            const ORDER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdi6yz0COgqnoeqIW12rDYj2XFVwmlQJK4SlGL2BL2F2yQflw/formResponse';
-            const MENU_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZC9Hg8JCm4Oo1mLyhV0CxQAyHUWoX-r8wT7x4QHba01Yn5rV7pjBd53jb5lj_KH3u/exec';
+const AghabyMenu = () => {
+const [menu, setMenu] = useState([]);
+const [cart, setCart] = useState([]);
+const [showCart, setShowCart] = useState(false);
+const [name, setName] = useState("");
+const [pickup, setPickup] = useState("");
 
-            // --- DATE LOGIC ---
-            const getInitialDateTime = () => {
-                const now = new Date();
-                const offset = now.getTimezoneOffset() * 60000;
-                return new Date(Date.now() - offset).toISOString().slice(0, 16);
-            };
+useEffect(() => {
+  setPickup(new Date().toISOString().slice(0,16));
+  setMenu([
+    {
+      id:1,
+      name:"Falafel Sandwich",
+      price:5.50,
+      image:"https://via.placeholder.com/400x300",
+      description:"Freshly fried falafel with tahini"
+    },
+    {
+      id:2,
+      name:"Koshary",
+      price:8.00,
+      image:"https://via.placeholder.com/400x300",
+      description:"Classic Egyptian comfort food"
+    }
+  ]);
+}, []);
 
-            const formatFriendlyDate = (dateStr) => {
-                if (!dateStr) return "";
-                return new Date(dateStr).toLocaleDateString('en-US', {
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                });
-            };
+const addToCart = (item) => {
+  const found = cart.find(i => i.id === item.id);
+  if(found){
+    setCart(cart.map(i => i.id===item.id ? {...i, qty:i.qty+1}:i));
+  } else {
+    setCart([...cart,{...item,qty:1}]);
+  }
+};
 
-            useEffect(() => {
-                fetchMenuData();
-                setPickupDate(getInitialDateTime());
-            }, []);
+const total = cart.reduce((s,i)=>s+i.price*i.qty,0).toFixed(2);
 
-            const fetchMenuData = async () => {
-                try {
-                    const response = await fetch(MENU_SCRIPT_URL);
-                    const data = await response.json();
-                    const items = data.map((row, index) => ({
-                        id: index + 1,
-                        name: row.Name, 
-                        price: parseFloat(row.Price) || 0,
-                        description: row.Description,
-                        image: row.Image,
-                        isPreOrder: Boolean(row.IsPreOrder === true || row.IsPreOrder === "TRUE" || row.IsPreOrder === "true")
-                    })).filter(item => item.name); 
-                    setMenuItems(items);
-                    setLoading(false);
-                } catch (error) {
-                    setLoading(false);
-                    setErrorMsg("Could not load menu. Verify Apps Script settings.");
-                }
-            };
+return (
+<div className="min-h-screen safe-bottom">
 
-            const addToCart = (item) => {
-                const existing = cart.find(i => i.id === item.id);
-                if (existing) {
-                    setCart(cart.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
-                } else {
-                    setCart([...cart, { ...item, quantity: 1 }]);
-                }
-            };
+{/* HEADER */}
+<header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b">
+  <div className="flex items-center justify-between px-4 py-4">
+    <h1 className="text-xl font-bold">St. Mark Aghapy</h1>
+    <button onClick={()=>setShowCart(true)} className="relative">
+      <ShoppingCart className="w-7 h-7"/>
+      {cart.length>0 && (
+        <span className="absolute -top-2 -right-2 bg-red-600 text-white
+          w-5 h-5 rounded-full text-xs flex items-center justify-center">
+          {cart.reduce((s,i)=>s+i.qty,0)}
+        </span>
+      )}
+    </button>
+  </div>
+</header>
 
-            const updateQuantity = (id, delta) => {
-                setCart(cart.map(item => item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item).filter(item => item.quantity > 0));
-            };
+{/* HERO */}
+<div className="px-6 pt-6">
+  <div className="ios-card p-6 text-center bg-gradient-to-br from-red-800 to-amber-700 text-white">
+    <h2 className="text-2xl font-bold mb-2">5 loaves & 2 fish</h2>
+    <p className="opacity-90">Blessed food for the community</p>
+  </div>
+</div>
 
-            const getTotal = () => cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
+{/* MENU */}
+<div className="px-6 py-6 space-y-6">
+{menu.map(item=>(
+  <div key={item.id} className="ios-card overflow-hidden">
+    <img src={item.image} className="h-44 w-full object-cover"/>
+    <div className="p-5">
+      <div className="flex justify-between items-center mb-1">
+        <h3 className="font-bold text-lg">{item.name}</h3>
+        <span className="font-semibold text-amber-700">${item.price}</span>
+      </div>
+      <p className="text-sm text-gray-500 mb-4">{item.description}</p>
+      <button
+        onClick={()=>addToCart(item)}
+        className="ios-button bg-red-800 text-white w-full flex justify-center gap-2">
+        <Plus className="w-5 h-5"/> Add to Cart
+      </button>
+    </div>
+  </div>
+))}
+</div>
 
-            const handleCheckout = async () => {
-                if (!customerName.trim() || !pickupDate) {
-                    alert('Please fill in your name and pickup time');
-                    return;
-                }
-                setSubmitting(true);
-                const orderDate = new Date().toLocaleString();
-                const friendlyPickup = new Date(pickupDate).toLocaleString('en-US', {
-                    month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                });
+{/* CART – iOS Bottom Sheet */}
+{showCart && (
+<div className="fixed inset-0 bg-black/40 z-50 flex items-end"
+     style={{animation:"ios-fade .2s"}}>
+  <div className="bg-white w-full rounded-t-3xl p-6"
+       style={{animation:"ios-slide-up .3s"}}>
+    <div className="flex justify-between mb-4">
+      <h3 className="font-bold text-xl">Your Order</h3>
+      <button onClick={()=>setShowCart(false)} className="text-gray-400 text-xl">✕</button>
+    </div>
 
-                try {
-                    const formData = new FormData();
-                    formData.append('entry.1988934435', customerName);
-                    formData.append('entry.1896473386', orderDate);
-                    formData.append('entry.260512440', friendlyPickup);
-                    formData.append('entry.594185743', cart.map(i => `${i.name}${i.isPreOrder ? ' (PRE-ORDER)' : ''}`).join('\n'));
-                    formData.append('entry.1477240420', cart.map(i => i.quantity).join('\n'));
-                    formData.append('entry.644258044', getTotal());
+    {cart.map(i=>(
+      <div key={i.id} className="flex justify-between mb-2">
+        <span>{i.name} × {i.qty}</span>
+        <span>${(i.qty*i.price).toFixed(2)}</span>
+      </div>
+    ))}
 
-                    await fetch(ORDER_FORM_URL, { method: 'POST', body: formData, mode: 'no-cors' });
-                    alert(`Order successful!\nPickup: ${friendlyPickup}`);
-                    setCart([]); setCustomerName(''); setShowCheckout(false);
-                } catch (e) {
-                    alert('Submission error. Please try again.');
-                } finally { setSubmitting(false); }
-            };
+    <div className="border-t mt-4 pt-4 font-bold flex justify-between">
+      <span>Total</span>
+      <span>${total}</span>
+    </div>
 
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-red-50 font-sans">
-                    {/* Header */}
-                    <header className="bg-gradient-to-r from-red-900 to-red-800 text-white shadow-lg sticky top-0 z-40">
-                        <div className="max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
-                            {/* LEFT SIDE: Cross and Title */}
-                            <div className="flex items-center gap-4">
-                                <Cross className="w-10 h-10 text-amber-300" />
-                                <div>
-                                    <h1 className="text-3xl font-bold tracking-wide">St. Mark Coptic Orthodox Church</h1>
-                                    <p className="text-amber-200 text-sm">Feed the Gathering Service</p>
-                                </div>
-                            </div>
+    <input
+      placeholder="Full name"
+      value={name}
+      onChange={e=>setName(e.target.value)}
+      className="w-full mt-4 border rounded-xl px-4 py-3"/>
 
-                            {/* RIGHT SIDE: Image and Cart Button */}
-                            <div className="flex items-center gap-6">
-                                 {/* Image added here on the right side. Ensure your PNG is transparent. */}
-                                <img src="loaves-and-fish.png" alt="Loaves and Fish" className="w-32 h-32 object-contain" />
-                                
-                                <button onClick={() => setShowCart(!showCart)} className="relative bg-amber-600 hover:bg-amber-700 px-6 py-3 rounded-full transition-all shadow-lg flex items-center gap-2">
-                                    <ShoppingCart className="w-6 h-6" />
-                                    <span className="font-semibold">Cart ({cart.length})</span>
-                                    {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs animate-bounce">{cart.reduce((s, i) => s + i.quantity, 0)}</span>}
-                                </button>
-                            </div>
-                        </div>
-                    </header>
+    <input
+      type="datetime-local"
+      value={pickup}
+      onChange={e=>setPickup(e.target.value)}
+      className="w-full mt-3 border rounded-xl px-4 py-3"/>
 
-                    {/* Hero Section */}
-                    <div className="bg-gradient-to-r from-red-800 to-amber-700 text-white py-12 text-center shadow-xl">
-                        <h2 className="text-4xl font-bold mb-4">Welcome to Feed the Gathering Service</h2>
-                        
-                        <div className="flex items-center justify-center gap-6 mb-4">
-                            {/* Reflected Fish (Left) */}
-                            <img src="fish.png" alt="Fish" className="w-32 h-32 object-contain" />                            
-                            <h2 className="text-4xl font-bold flex flex-wrap justify-center gap-8">
-                                <span className="italic">5 loaves and 2 fish</span>
-                                <span dir="rtl" style={{ transform: 'skewX(15deg)', display: 'inline-block' }}>
-                                    5 خبزات وسمكتين
-                                </span>
-                            </h2>
+    <button className="ios-button bg-red-800 text-white w-full mt-4">
+      Place Order
+    </button>
+  </div>
+</div>
+)}
 
-                            {/* Standard Fish (Right) */}
+</div>
+);
+};
 
-                            <img src="fish.png" alt="Fish" className="w-32 h-32 object-contain" style={{ transform: 'rotateY(180deg)' }} />
-                        </div>
-                        
-                        <p className="text-xl text-amber-100 max-w-2xl mx-auto px-4 italic">Blessed food prepared with love and prayer for our community</p>
-                    </div>
-
-                    {/* Menu Items */}
-                    <div className="max-w-7xl mx-auto px-4 py-8">
-                        {loading ? (
-                            <div className="text-center py-20 text-red-900 font-bold">Loading Menu...</div>
-                        ) : (
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {menuItems.map((item, i) => (
-                                    <div key={item.id} className="bg-white rounded-xl shadow-lg overflow-hidden animate-slide-up relative group" style={{ animationDelay: `${i * 50}ms` }}>
-                                        {item.isPreOrder && <div className="absolute top-0 left-0 bg-blue-700 text-white px-4 py-1 rounded-br-lg font-bold text-xs z-10 flex items-center gap-1"><CalendarClock className="w-4 h-4" /> PRE-ORDER</div>}
-                                        <div className="h-56 overflow-hidden">
-                                            <img src={item.image || 'https://via.placeholder.com/400x300'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                        </div>
-                                        <div className="p-6">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h4 className="text-xl font-bold text-red-900">{item.name}</h4>
-                                                <span className="bg-amber-100 text-amber-800 font-bold px-2 py-1 rounded">${item.price.toFixed(2)}</span>
-                                            </div>
-                                            <p className="text-gray-600 text-sm mb-6 h-12 line-clamp-2">{item.description}</p>
-                                            <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-lg font-bold text-white transition-all transform hover:scale-105 shadow-md flex justify-center gap-2 ${item.isPreOrder ? 'bg-blue-700 hover:bg-blue-800' : 'bg-red-800 hover:bg-red-900'}`}>
-                                                {item.isPreOrder ? <CalendarClock className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                                                {item.isPreOrder ? 'Pre-Order Now' : 'Add to Cart'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Cart Sidebar */}
-                    {showCart && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex justify-end animate-fade-in">
-                            <div className="w-full md:w-96 bg-white h-full shadow-2xl flex flex-col animate-slide-left">
-                                <div className="bg-red-900 p-6 text-white flex justify-between items-center">
-                                    <h3 className="text-xl font-bold">Your Cart</h3>
-                                    <button onClick={() => setShowCart(false)} className="text-2xl">&times;</button>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                                    {cart.map(item => (
-                                        <div key={item.id} className="flex gap-4 bg-gray-50 p-3 rounded-lg border-l-4 border-red-800">
-                                            <img src={item.image} className="w-16 h-16 object-cover rounded shadow" />
-                                            <div className="flex-1">
-                                                <h5 className="font-bold text-red-900 text-sm">{item.name}</h5>
-                                                <div className="flex items-center justify-between mt-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <button onClick={() => updateQuantity(item.id, -1)} className="w-6 h-6 bg-red-100 rounded-full text-red-900 flex items-center justify-center font-bold text-sm">-</button>
-                                                        <span className="text-sm font-bold">{item.quantity}</span>
-                                                        <button onClick={() => updateQuantity(item.id, 1)} className="w-6 h-6 bg-red-100 rounded-full text-red-900 flex items-center justify-center font-bold text-sm">+</button>
-                                                    </div>
-                                                    <span className="font-bold text-amber-700">${(item.price * item.quantity).toFixed(2)}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="p-6 border-t bg-gray-50">
-                                    <div className="flex justify-between text-xl font-bold text-red-900 mb-4"><span>Total:</span><span>${getTotal()}</span></div>
-                                    <button onClick={() => { setShowCart(false); setShowCheckout(true); }} className="w-full py-4 bg-red-800 text-white rounded-xl font-bold shadow-lg hover:bg-red-900 transition">Proceed to Checkout</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Checkout Modal */}
-                    {showCheckout && (
-                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-                            <div className="bg-white rounded-2xl w-full max-w-xl overflow-hidden animate-scale-in">
-                                <div className="bg-red-900 p-6 text-white"><h3 className="text-2xl font-bold">Complete Your Order</h3></div>
-                                <div className="p-8 space-y-6">
-                                    <div>
-                                        <label className="block text-red-900 font-bold mb-2">Full Name</label>
-                                        <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-red-800 focus:outline-none" placeholder="Enter your name" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-red-900 font-bold mb-2">Pickup Date & Time</label>
-                                        <input type="datetime-local" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-red-800 focus:outline-none" />
-                                        {pickupDate && (
-                                            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm font-medium flex gap-2">
-                                                <CalendarClock className="w-4 h-4" />
-                                                Selected: {formatFriendlyDate(pickupDate)}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="bg-red-50 p-4 rounded-xl flex justify-between items-center text-xl font-bold text-red-900 border-2 border-red-100">
-                                        <span>Total Amount:</span><span>${getTotal()}</span>
-                                    </div>
-                                    <div className="flex gap-4">
-                                        <button onClick={() => setShowCheckout(false)} className="flex-1 py-4 border-2 border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
-                                        <button onClick={handleCheckout} disabled={submitting} className="flex-1 py-4 bg-red-800 text-white rounded-xl font-bold shadow-lg hover:bg-red-900 transition disabled:opacity-50">
-                                            {submitting ? 'Sending...' : 'Place Order'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<AghabyMenu />);
-    </script>
+ReactDOM.createRoot(document.getElementById("root")).render(<AghabyMenu/>);
+</script>
 </body>
 </html>
