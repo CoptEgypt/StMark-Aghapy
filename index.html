@@ -30,8 +30,6 @@
         .animate-scale-in { animation: scale-in 0.3s ease-out; }
         .scroll-container { -webkit-overflow-scrolling: touch; }
         input, textarea { font-size: 16px !important; appearance: none; -webkit-appearance: none; }
-        
-        /* Grayscale for out of stock */
         .grayscale { filter: grayscale(100%); }
     </style>
 </head>
@@ -85,6 +83,9 @@
                 try {
                     const response = await fetch(MENU_SCRIPT_URL);
                     const data = await response.json();
+                    
+                    const now = new Date();
+
                     const items = data.map((row, index) => ({
                         id: index + 1,
                         name: row.Name, 
@@ -92,9 +93,32 @@
                         description: row.Description,
                         image: row.Image,
                         isPreOrder: Boolean(row.IsPreOrder === true || row.IsPreOrder === "TRUE" || row.IsPreOrder === "true"),
-                        remaining: row.remaining, // NEW: Stock logic
-                        hasLimit: row.hasLimit
-                    })).filter(item => item.name); 
+                        remaining: row.remaining,
+                        hasLimit: row.hasLimit,
+                        // Get Dates from Sheet
+                        displayOn: row["Display On"],
+                        removeOn: row["Remove On"]
+                    })).filter(item => {
+                        // 1. Must have a name
+                        if (!item.name) return false;
+
+                        // 2. CHECK DISPLAY ON (Start Date)
+                        if (item.displayOn) {
+                            const startDate = new Date(item.displayOn);
+                            // If it's a valid date and Now is BEFORE Start Date, hide it
+                            if (!isNaN(startDate.getTime()) && now < startDate) return false;
+                        }
+
+                        // 3. CHECK REMOVE ON (End Date)
+                        if (item.removeOn) {
+                            const endDate = new Date(item.removeOn);
+                            // If it's a valid date and Now is AFTER End Date, hide it
+                            if (!isNaN(endDate.getTime()) && now > endDate) return false;
+                        }
+
+                        return true;
+                    }); 
+
                     setMenuItems(items);
                     setLoading(false);
                 } catch (error) {
@@ -104,11 +128,10 @@
             };
 
             const addToCart = (item) => {
-                if (item.remaining <= 0) return; // Prevent adding if out of stock
+                if (item.remaining <= 0) return; 
 
                 const existing = cart.find(i => i.id === item.id);
                 if (existing) {
-                    // Check limit before adding more
                     if (existing.quantity >= item.remaining) {
                         alert(`Sorry, only ${item.remaining} left in stock!`);
                         return;
@@ -123,7 +146,6 @@
                 const cartItem = cart.find(i => i.id === id);
                 if (!cartItem) return;
 
-                // Check limit if increasing
                 if (delta > 0 && cartItem.quantity >= cartItem.remaining) {
                     alert(`Sorry, only ${cartItem.remaining} left in stock!`);
                     return;
@@ -165,7 +187,6 @@
                     setCart([]); 
                     setCustomerName(''); 
                     setShowCheckout(false);
-                    // Refresh menu to update stock for user
                     setLoading(true);
                     fetchMenuData();
                 } catch (e) {
