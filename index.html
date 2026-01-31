@@ -13,41 +13,26 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <style>
-        /* iOS Smooth Scrolling and Safe Areas */
         :root {
             --sat: env(safe-area-inset-top);
             --sar: env(safe-area-inset-right);
             --sab: env(safe-area-inset-bottom);
             --sal: env(safe-area-inset-left);
         }
-
-        body {
-            -webkit-tap-highlight-color: transparent;
-            overscroll-behavior-y: none;
-            overflow-x: hidden;
-        }
-
+        body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; overflow-x: hidden; }
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slide-left { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @keyframes scale-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        
         .animate-fade-in { animation: fade-in 0.3s ease-out; }
         .animate-slide-up { animation: slide-up 0.5s ease-out; animation-fill-mode: both; }
         .animate-slide-left { animation: slide-left 0.3s ease-out; }
         .animate-scale-in { animation: scale-in 0.3s ease-out; }
-
-        /* Ensure smooth scrolling on iOS */
-        .scroll-container {
-            -webkit-overflow-scrolling: touch;
-        }
-
-        /* Fix for iPhone input zoom and styling */
-        input, textarea {
-            font-size: 16px !important; /* Prevents auto-zoom on focus in iOS */
-            appearance: none;
-            -webkit-appearance: none;
-        }
+        .scroll-container { -webkit-overflow-scrolling: touch; }
+        input, textarea { font-size: 16px !important; appearance: none; -webkit-appearance: none; }
+        
+        /* Grayscale for out of stock */
+        .grayscale { filter: grayscale(100%); }
     </style>
 </head>
 <body class="bg-gradient-to-br from-amber-50 via-white to-red-50">
@@ -57,18 +42,11 @@
         const { useState, useEffect } = React;
 
         // --- ICONS ---
-        const ShoppingCart = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>
-        );
-        const Plus = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        );
-        const Cross = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M11 2h2v6h6v2h-6v12h-2V10H5V8h6V2z"/></svg>
-        );
-        const CalendarClock = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h5"/><path d="M21 17h-5"/><path d="m19 14 2 2-2 2"/></svg>
-        );
+        const ShoppingCart = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>);
+        const Plus = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>);
+        const Cross = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M11 2h2v6h6v2h-6v12h-2V10H5V8h6V2z"/></svg>);
+        const CalendarClock = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h5"/><path d="M21 17h-5"/><path d="m19 14 2 2-2 2"/></svg>);
+        const Ban = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>);
 
         const AghabyMenu = () => {
             const [menuItems, setMenuItems] = useState([]);
@@ -79,7 +57,6 @@
             const [showCheckout, setShowCheckout] = useState(false);
             const [submitting, setSubmitting] = useState(false);
             
-            // --- FORM STATE ---
             const [customerName, setCustomerName] = useState('');
             const [pickupDate, setPickupDate] = useState('');
 
@@ -114,7 +91,9 @@
                         price: parseFloat(row.Price) || 0,
                         description: row.Description,
                         image: row.Image,
-                        isPreOrder: Boolean(row.IsPreOrder === true || row.IsPreOrder === "TRUE" || row.IsPreOrder === "true")
+                        isPreOrder: Boolean(row.IsPreOrder === true || row.IsPreOrder === "TRUE" || row.IsPreOrder === "true"),
+                        remaining: row.remaining, // NEW: Stock logic
+                        hasLimit: row.hasLimit
                     })).filter(item => item.name); 
                     setMenuItems(items);
                     setLoading(false);
@@ -125,20 +104,34 @@
             };
 
             const addToCart = (item) => {
+                if (item.remaining <= 0) return; // Prevent adding if out of stock
+
                 const existing = cart.find(i => i.id === item.id);
                 if (existing) {
+                    // Check limit before adding more
+                    if (existing.quantity >= item.remaining) {
+                        alert(`Sorry, only ${item.remaining} left in stock!`);
+                        return;
+                    }
                     setCart(cart.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
                 } else {
-                    // NEW: Initialize with empty comment
                     setCart([...cart, { ...item, quantity: 1, comment: '' }]);
                 }
             };
 
             const updateQuantity = (id, delta) => {
+                const cartItem = cart.find(i => i.id === id);
+                if (!cartItem) return;
+
+                // Check limit if increasing
+                if (delta > 0 && cartItem.quantity >= cartItem.remaining) {
+                    alert(`Sorry, only ${cartItem.remaining} left in stock!`);
+                    return;
+                }
+
                 setCart(cart.map(item => item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item).filter(item => item.quantity > 0));
             };
 
-            // NEW: Function to handle individual item comments
             const updateItemComment = (id, text) => {
                 setCart(cart.map(item => item.id === id ? { ...item, comment: text } : item));
             };
@@ -161,18 +154,10 @@
                     formData.append('entry.1988934435', customerName);
                     formData.append('entry.1896473386', orderDate);
                     formData.append('entry.260512440', friendlyPickup);
-                    
-                    // --- PREPARING LISTS ---
-                    // 1. List of Names
                     formData.append('entry.594185743', cart.map(i => `${i.name}${i.isPreOrder ? ' (PRE-ORDER)' : ''}`).join('\n'));
-                    
-                    // 2. List of Quantities
                     formData.append('entry.1477240420', cart.map(i => i.quantity).join('\n'));
-                    
-                    // 3. List of Comments (If empty, send a dash '-' to keep rows aligned)
                     const commentsList = cart.map(i => i.comment && i.comment.trim() !== '' ? i.comment : '-').join('\n');
                     formData.append('entry.108738790', commentsList);
-
                     formData.append('entry.644258044', getTotal());
 
                     await fetch(ORDER_FORM_URL, { method: 'POST', body: formData, mode: 'no-cors' });
@@ -180,14 +165,18 @@
                     setCart([]); 
                     setCustomerName(''); 
                     setShowCheckout(false);
+                    // Refresh menu to update stock for user
+                    setLoading(true);
+                    fetchMenuData();
                 } catch (e) {
                     alert('Submission error. Please try again.');
-                } finally { setSubmitting(false); }
+                    setSubmitting(false);
+                } 
             };
 
             return (
                 <div className="min-h-screen flex flex-col overflow-x-hidden">
-                    {/* Header - Fixed & Safe Area Aware */}
+                    {/* Header */}
                     <header className="bg-gradient-to-r from-red-900 to-red-800 text-white shadow-lg sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
                         <div className="max-w-7xl mx-auto px-4 py-4 md:py-6 flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -197,7 +186,6 @@
                                     <p className="text-amber-200 text-xs md:text-sm">Feed the Gathering</p>
                                 </div>
                             </div>
-
                             <div className="flex items-center gap-2 md:gap-6">
                                 <img src="loaves-and-fish.png" alt="" className="hidden sm:block w-20 h-20 object-contain" />
                                 <button onClick={() => setShowCart(true)} className="relative bg-amber-600 active:scale-95 px-4 py-2 md:px-6 md:py-3 rounded-full transition-all shadow-lg flex items-center gap-2">
@@ -212,7 +200,6 @@
                     {/* Hero */}
                     <div className="bg-gradient-to-r from-red-800 to-amber-700 text-white py-10 text-center shadow-xl px-4">
                         <h2 className="text-2xl md:text-4xl font-bold mb-4">Feed the Gathering</h2>
-                        
                         <div className="flex items-center justify-center gap-4 mb-4">
                             <img src="fish.png" alt="Fish" className="w-16 h-16 md:w-24 md:h-24 object-contain" />                            
                             <h2 className="text-xl md:text-3xl font-bold flex flex-col md:flex-row items-center gap-2">
@@ -230,32 +217,56 @@
                             <div className="text-center py-20 text-red-900 font-bold animate-pulse">Loading Menu...</div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {menuItems.map((item, i) => (
-                                    <div key={item.id} className="bg-white rounded-2xl shadow-md overflow-hidden animate-slide-up relative flex flex-col" style={{ animationDelay: `${i * 50}ms` }}>
-                                        {item.isPreOrder && (
-                                            <div className="absolute top-3 left-3 bg-blue-700 text-white px-3 py-1 rounded-full font-bold text-[10px] z-10 flex items-center gap-1 shadow-lg">
-                                                <CalendarClock className="w-3 h-3" /> PRE-ORDER
+                                {menuItems.map((item, i) => {
+                                    const isSoldOut = item.remaining <= 0;
+                                    return (
+                                        <div key={item.id} className={`bg-white rounded-2xl shadow-md overflow-hidden animate-slide-up relative flex flex-col ${isSoldOut ? 'opacity-80' : ''}`} style={{ animationDelay: `${i * 50}ms` }}>
+                                            {/* Pre-Order Tag */}
+                                            {item.isPreOrder && !isSoldOut && (
+                                                <div className="absolute top-3 left-3 bg-blue-700 text-white px-3 py-1 rounded-full font-bold text-[10px] z-10 flex items-center gap-1 shadow-lg">
+                                                    <CalendarClock className="w-3 h-3" /> PRE-ORDER
+                                                </div>
+                                            )}
+                                            
+                                            {/* Sold Out Overlay */}
+                                            {isSoldOut && (
+                                                <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center">
+                                                    <div className="bg-red-800 text-white px-6 py-2 rounded-full font-bold text-lg shadow-2xl border-2 border-white transform -rotate-12">
+                                                        SOLD OUT
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Limit Tag */}
+                                            {!isSoldOut && item.hasLimit && item.remaining < 10 && (
+                                                <div className="absolute top-3 right-3 bg-red-100 text-red-800 border border-red-200 px-2 py-1 rounded-lg font-bold text-[10px] z-10 shadow-sm">
+                                                    Only {item.remaining} left!
+                                                </div>
+                                            )}
+
+                                            <div className="h-48 md:h-56 overflow-hidden">
+                                                <img src={item.image || 'https://via.placeholder.com/400x300'} className={`w-full h-full object-cover ${isSoldOut ? 'grayscale' : ''}`} loading="lazy" />
                                             </div>
-                                        )}
-                                        <div className="h-48 md:h-56 overflow-hidden">
-                                            <img src={item.image || 'https://via.placeholder.com/400x300'} className="w-full h-full object-cover" loading="lazy" />
-                                        </div>
-                                        <div className="p-5 flex flex-col flex-1">
-                                            <div className="flex justify-between items-start mb-2 gap-2">
-                                                <h4 className="text-lg font-bold text-red-900 leading-tight">{item.name}</h4>
-                                                <span className="text-amber-800 font-bold text-lg">${item.price.toFixed(2)}</span>
+                                            <div className="p-5 flex flex-col flex-1">
+                                                <div className="flex justify-between items-start mb-2 gap-2">
+                                                    <h4 className="text-lg font-bold text-red-900 leading-tight">{item.name}</h4>
+                                                    <span className="text-amber-800 font-bold text-lg">${item.price.toFixed(2)}</span>
+                                                </div>
+                                                <p className="text-gray-500 text-xs md:text-sm mb-6 flex-1">{item.description}</p>
+                                                
+                                                <button 
+                                                    onClick={() => addToCart(item)} 
+                                                    disabled={isSoldOut}
+                                                    className={`w-full py-4 rounded-xl font-bold text-white transition-transform shadow-md flex justify-center items-center gap-2 
+                                                        ${isSoldOut ? 'bg-gray-400 cursor-not-allowed' : (item.isPreOrder ? 'bg-blue-700 active:scale-95' : 'bg-red-800 active:scale-95')}`}
+                                                >
+                                                    {isSoldOut ? <Ban className="w-5 h-5" /> : (item.isPreOrder ? <CalendarClock className="w-5 h-5" /> : <Plus className="w-5 h-5" />)}
+                                                    {isSoldOut ? 'Out of Stock' : (item.isPreOrder ? 'Pre-Order' : 'Add to Cart')}
+                                                </button>
                                             </div>
-                                            <p className="text-gray-500 text-xs md:text-sm mb-6 flex-1">{item.description}</p>
-                                            <button 
-                                                onClick={() => addToCart(item)} 
-                                                className={`w-full py-4 rounded-xl font-bold text-white active:scale-95 transition-transform shadow-md flex justify-center items-center gap-2 ${item.isPreOrder ? 'bg-blue-700' : 'bg-red-800'}`}
-                                            >
-                                                {item.isPreOrder ? <CalendarClock className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                                                {item.isPreOrder ? 'Pre-Order' : 'Add to Cart'}
-                                            </button>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -271,22 +282,25 @@
                                 <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-container">
                                     {cart.map(item => (
                                         <div key={item.id} className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col gap-3">
-                                            {/* Item Info Top Row */}
                                             <div className="flex gap-3">
                                                 <img src={item.image} className="w-16 h-16 object-cover rounded-lg shadow-sm" />
                                                 <div className="flex-1">
                                                     <h5 className="font-bold text-red-900 text-sm">{item.name}</h5>
+                                                    <div className="text-[10px] text-gray-500">Max available: {item.remaining}</div>
                                                     <div className="flex items-center justify-between mt-2">
                                                         <div className="flex items-center gap-3">
                                                             <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center font-bold shadow-sm">-</button>
                                                             <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
-                                                            <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center font-bold shadow-sm">+</button>
+                                                            <button 
+                                                                onClick={() => updateQuantity(item.id, 1)} 
+                                                                disabled={item.quantity >= item.remaining}
+                                                                className="w-8 h-8 bg-white border border-gray-200 rounded-full flex items-center justify-center font-bold shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                                                            >+</button>
                                                         </div>
                                                         <span className="font-bold text-amber-700">${(item.price * item.quantity).toFixed(2)}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            {/* NEW: Per Item Comment Box */}
                                             <input 
                                                 type="text" 
                                                 placeholder="Special request? (e.g. No onion)" 
