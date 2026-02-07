@@ -1,0 +1,8 @@
+{
+  "name": "aghapy-menu",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "square": "^35.0.0"
+  }
+}
