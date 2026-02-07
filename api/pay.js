@@ -1,4 +1,5 @@
 const { Client, Environment } = require('square');
+const crypto = require('crypto');
 
 // Use environment variables for secrets
 const SQUARE_ACCESS_TOKEN = process.env.SQUARE_ACCESS_TOKEN;
